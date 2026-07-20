@@ -45,21 +45,23 @@ public class AuthServiceImpl implements AuthService {
 @Value("${app.frontend-url}")
 private String frontendUrl;
 
-    public AuthServiceImpl(UserRepository userRepository,
-                           RefreshTokenRepository refreshTokenRepository,
-                           VerificationTokenRepository verificationTokenRepository,
-                           PasswordResetTokenRepository passwordResetTokenRepository,
-                           PasswordEncoder passwordEncoder,
-                           JwtTokenProvider jwtTokenProvider,
-                           AuthenticationManager authenticationManager) {
-        this.userRepository = userRepository;
-        this.refreshTokenRepository = refreshTokenRepository;
-        this.verificationTokenRepository = verificationTokenRepository;
-        this.passwordResetTokenRepository = passwordResetTokenRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.authenticationManager = authenticationManager;
-    }
+   public AuthServiceImpl(UserRepository userRepository,
+                       RefreshTokenRepository refreshTokenRepository,
+                       VerificationTokenRepository verificationTokenRepository,
+                       PasswordResetTokenRepository passwordResetTokenRepository,
+                       PasswordEncoder passwordEncoder,
+                       JwtTokenProvider jwtTokenProvider,
+                       AuthenticationManager authenticationManager,
+                       JavaMailSender mailSender) {
+    this.userRepository = userRepository;
+    this.refreshTokenRepository = refreshTokenRepository;
+    this.verificationTokenRepository = verificationTokenRepository;
+    this.passwordResetTokenRepository = passwordResetTokenRepository;
+    this.passwordEncoder = passwordEncoder;
+    this.jwtTokenProvider = jwtTokenProvider;
+    this.authenticationManager = authenticationManager;
+    this.mailSender = mailSender;
+}
 
     @Override
     public void register(RegisterRequest request) {
