@@ -24,6 +24,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.MediaType;
+import java.util.HashMap;
+import java.util.Map;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -40,7 +46,16 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
-    private final JavaMailSender mailSender;
+    private final RestTemplate restTemplate;
+
+@Value("${app.brevo.api-key}")
+private String brevoApiKey;
+
+@Value("${app.brevo.sender-email}")
+private String brevoSenderEmail;
+
+@Value("${app.brevo.sender-name}")
+private String brevoSenderName;
 
 @Value("${app.frontend-url}")
 private String frontendUrl;
@@ -52,7 +67,7 @@ private String frontendUrl;
                        PasswordEncoder passwordEncoder,
                        JwtTokenProvider jwtTokenProvider,
                        AuthenticationManager authenticationManager,
-                       JavaMailSender mailSender) {
+                       RestTemplate restTemplate) {
     this.userRepository = userRepository;
     this.refreshTokenRepository = refreshTokenRepository;
     this.verificationTokenRepository = verificationTokenRepository;
@@ -60,7 +75,7 @@ private String frontendUrl;
     this.passwordEncoder = passwordEncoder;
     this.jwtTokenProvider = jwtTokenProvider;
     this.authenticationManager = authenticationManager;
-    this.mailSender = mailSender;
+    this.restTemplate = restTemplate;
 }
 
     @Override
@@ -83,7 +98,8 @@ private String frontendUrl;
                 .build();
 
         User savedUser = userRepository.save(user);
-
+        
+        
         // Create verification token
         String token = UUID.randomUUID().toString();
         VerificationToken verificationToken = VerificationToken.builder()
@@ -94,13 +110,34 @@ private String frontendUrl;
         verificationTokenRepository.save(verificationToken);
 
         // Log token link to console so user can copy it
-       String verifyLink = frontendUrl + "/verify-email?token=" + token;
-SimpleMailMessage message = new SimpleMailMessage();
-message.setTo(savedUser.getEmail());
-message.setSubject("Verify your DevTrack Pro account");
-message.setText("Welcome to DevTrack Pro! Click the link below to verify your email:\n\n" + verifyLink);
-mailSender.send(message);
+     String verifyLink = frontendUrl + "/verify-email?token=" + token;
+String htmlContent = "<p>Welcome to DevTrack Pro!</p><p>Click the link below to verify your email:</p><p><a href=\"" + verifyLink + "\">" + verifyLink + "</a></p>";
+sendEmailViaBrevo(savedUser.getEmail(), "Verify your DevTrack Pro account", htmlContent);
     }
+   
+   private void sendEmailViaBrevo(String toEmail, String subject, String htmlContent) {
+    String url = "https://api.brevo.com/v3/smtp/email";
+
+    HttpHeaders headers = new HttpHeaders();
+    headers.set("api-key", brevoApiKey);
+    headers.setContentType(MediaType.APPLICATION_JSON);
+
+    Map<String, Object> sender = new HashMap<>();
+    sender.put("name", brevoSenderName);
+    sender.put("email", brevoSenderEmail);
+
+    Map<String, Object> recipient = new HashMap<>();
+    recipient.put("email", toEmail);
+
+    Map<String, Object> body = new HashMap<>();
+    body.put("sender", sender);
+    body.put("to", java.util.List.of(recipient));
+    body.put("subject", subject);
+    body.put("htmlContent", htmlContent);
+
+    HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+    restTemplate.postForEntity(url, request, String.class);
+}
 
     @Override
     public void verifyEmail(String token) {
@@ -195,11 +232,8 @@ mailSender.send(message);
                 .build();
         passwordResetTokenRepository.save(passwordResetToken);
 String resetLink = frontendUrl + "/reset-password?token=" + token;
-SimpleMailMessage message = new SimpleMailMessage();
-message.setTo(user.getEmail());
-message.setSubject("Reset your DevTrack Pro password");
-message.setText("Click the link below to reset your password:\n\n" + resetLink);
-mailSender.send(message);
+String htmlContent = "<p>Click the link below to reset your password:</p><p><a href=\"" + resetLink + "\">" + resetLink + "</a></p>";
+sendEmailViaBrevo(user.getEmail(), "Reset your DevTrack Pro password", htmlContent);
     }
 
     @Override
