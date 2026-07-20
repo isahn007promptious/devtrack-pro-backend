@@ -1,5 +1,8 @@
 package com.devtrackpro.service.impl;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import com.devtrackpro.dto.*;
 import com.devtrackpro.entity.PasswordResetToken;
 import com.devtrackpro.entity.RefreshToken;
@@ -37,6 +40,10 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
+    private final JavaMailSender mailSender;
+
+@Value("${app.frontend-url}")
+private String frontendUrl;
 
     public AuthServiceImpl(UserRepository userRepository,
                            RefreshTokenRepository refreshTokenRepository,
@@ -85,10 +92,12 @@ public class AuthServiceImpl implements AuthService {
         verificationTokenRepository.save(verificationToken);
 
         // Log token link to console so user can copy it
-        System.out.println("=======================================================================");
-        System.out.println("EMAIL VERIFICATION LINK FOR " + savedUser.getEmail() + ":");
-        System.out.println("http://localhost:5173/verify-email?token=" + token);
-        System.out.println("=======================================================================");
+       String verifyLink = frontendUrl + "/verify-email?token=" + token;
+SimpleMailMessage message = new SimpleMailMessage();
+message.setTo(savedUser.getEmail());
+message.setSubject("Verify your DevTrack Pro account");
+message.setText("Welcome to DevTrack Pro! Click the link below to verify your email:\n\n" + verifyLink);
+mailSender.send(message);
     }
 
     @Override
@@ -183,11 +192,12 @@ public class AuthServiceImpl implements AuthService {
                 .expiryDate(Instant.now().plus(1, ChronoUnit.HOURS))
                 .build();
         passwordResetTokenRepository.save(passwordResetToken);
-
-        System.out.println("=======================================================================");
-        System.out.println("PASSWORD RESET LINK FOR " + user.getEmail() + ":");
-        System.out.println("http://localhost:5173/reset-password?token=" + token);
-        System.out.println("=======================================================================");
+String resetLink = frontendUrl + "/reset-password?token=" + token;
+SimpleMailMessage message = new SimpleMailMessage();
+message.setTo(user.getEmail());
+message.setSubject("Reset your DevTrack Pro password");
+message.setText("Click the link below to reset your password:\n\n" + resetLink);
+mailSender.send(message);
     }
 
     @Override
