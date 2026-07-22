@@ -62,32 +62,27 @@ public class OrganizationServiceImpl implements OrganizationService {
                 .build();
     }
 
-    @Override
-    public void inviteMember(Long orgId, InviteRequest request, String currentUserEmail) {
-        Organization org = organizationRepository.findById(orgId)
-                .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
+   @Override
+public String inviteMember(Long orgId, InviteRequest request, String currentUserEmail) {
+    Organization org = organizationRepository.findById(orgId)
+            .orElseThrow(() -> new ResourceNotFoundException("Organization not found"));
 
-        // Generate invitation
-        String token = UUID.randomUUID().toString();
-        
-        // Remove duplicate invitation if exists
-        invitationRepository.findByOrganizationIdAndEmail(orgId, request.getEmail())
-                .ifPresent(invitationRepository::delete);
+    String token = UUID.randomUUID().toString();
 
-        OrganizationInvitation invitation = OrganizationInvitation.builder()
-                .organization(org)
-                .email(request.getEmail())
-                .role(OrganizationRole.valueOf(request.getRole()))
-                .token(token)
-                .isAccepted(false)
-                .build();
-        invitationRepository.save(invitation);
+    invitationRepository.findByOrganizationIdAndEmail(orgId, request.getEmail())
+            .ifPresent(invitationRepository::delete);
 
-        System.out.println("=======================================================================");
-        System.out.println("INVITATION LINK TO JOIN ORGANIZATION " + org.getName() + " FOR " + request.getEmail() + ":");
-        System.out.println("http://localhost:5173/join-org?token=" + token);
-        System.out.println("=======================================================================");
-    }
+    OrganizationInvitation invitation = OrganizationInvitation.builder()
+            .organization(org)
+            .email(request.getEmail())
+            .role(OrganizationRole.valueOf(request.getRole()))
+            .token(token)
+            .isAccepted(false)
+            .build();
+    invitationRepository.save(invitation);
+
+    return token;
+}
 
     @Override
     public void joinOrganization(JoinRequest request, String currentUserEmail) {
@@ -174,4 +169,17 @@ public class OrganizationServiceImpl implements OrganizationService {
                         .build())
                 .collect(Collectors.toList());
     }
+
+    @Override
+public List<InvitationResponse> getPendingInvitations(Long orgId) {
+    return invitationRepository.findByOrganizationIdAndIsAcceptedFalse(orgId).stream()
+            .map(inv -> InvitationResponse.builder()
+                    .id(inv.getId())
+                    .email(inv.getEmail())
+                    .role(inv.getRole().name())
+                    .accepted(inv.isAccepted())
+                    .build())
+            .toList();
+}
+
 }

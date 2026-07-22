@@ -39,15 +39,24 @@ public class OrganizationController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{id}/invite")
-    @PreAuthorize("@security.hasOrgRole(#id, 'OWNER', 'ADMIN')")
-    @Operation(summary = "Invite a new member to the organization (Requires OWNER/ADMIN role)")
-    public ResponseEntity<Map<String, String>> inviteMember(@PathVariable Long id, @Valid @RequestBody InviteRequest request, Principal principal) {
-        organizationService.inviteMember(id, request, principal.getName());
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Invitation generated. The invitation link has been logged to standard output.");
-        return ResponseEntity.ok(response);
-    }
+  @PostMapping("/{id}/invitations")
+@PreAuthorize("@security.hasOrgRole(#id, 'OWNER', 'ADMIN')")
+@Operation(summary = "Invite a new member to the organization (Requires OWNER/ADMIN role)")
+public ResponseEntity<Map<String, String>> inviteMember(@PathVariable Long id, @Valid @RequestBody InviteRequest request, Principal principal) {
+    String token = organizationService.inviteMember(id, request, principal.getName());
+    Map<String, String> response = new HashMap<>();
+    response.put("token", token);
+    response.put("message", "Invitation created successfully.");
+    return ResponseEntity.ok(response);
+}
+
+@GetMapping("/{id}/invitations")
+@PreAuthorize("@security.hasOrgRole(#id, 'OWNER', 'ADMIN')")
+@Operation(summary = "List pending invitations for the organization")
+public ResponseEntity<List<InvitationResponse>> getPendingInvitations(@PathVariable Long id) {
+    List<InvitationResponse> response = organizationService.getPendingInvitations(id);
+    return ResponseEntity.ok(response);
+}
 
     @PostMapping("/{id}/join")
     @Operation(summary = "Accept an invitation and join the organization")
@@ -74,4 +83,9 @@ public class OrganizationController {
         List<MemberResponse> response = organizationService.getMembers(id);
         return ResponseEntity.ok(response);
     }
+
+
+
 }
+
+
