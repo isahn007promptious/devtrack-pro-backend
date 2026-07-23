@@ -58,6 +58,15 @@ public ResponseEntity<List<InvitationResponse>> getPendingInvitations(@PathVaria
     return ResponseEntity.ok(response);
 }
 
+@PostMapping("/join")
+@Operation(summary = "Accept an invitation and join an organization using just the invite token")
+public ResponseEntity<Map<String, String>> joinOrganizationByToken(@Valid @RequestBody JoinRequest request, Principal principal) {
+    organizationService.joinOrganization(request, principal.getName());
+    Map<String, String> response = new HashMap<>();
+    response.put("message", "Successfully joined the organization.");
+    return ResponseEntity.ok(response);
+}
+
     @PostMapping("/{id}/join")
     @Operation(summary = "Accept an invitation and join the organization")
     public ResponseEntity<Map<String, String>> joinOrganization(@PathVariable Long id, @Valid @RequestBody JoinRequest request, Principal principal) {
